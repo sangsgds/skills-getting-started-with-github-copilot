@@ -38,6 +38,42 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+    "Basketball Team": {
+        "description": "Competitive basketball team and practice sessions",
+        "schedule": "Mondays and Wednesdays, 4:00 PM - 5:30 PM",
+        "max_participants": 15,
+        "participants": ["alex@mergington.edu"]
+    },
+    "Tennis Club": {
+        "description": "Tennis lessons and friendly matches",
+        "schedule": "Saturdays, 10:00 AM - 12:00 PM",
+        "max_participants": 16,
+        "participants": ["sarah@mergington.edu"]
+    },
+    "Drama Club": {
+        "description": "Theater productions and performance arts",
+        "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
+        "max_participants": 25,
+        "participants": ["lucas@mergington.edu", "anna@mergington.edu"]
+    },
+    "Art Studio": {
+        "description": "Painting, drawing, and visual arts",
+        "schedule": "Tuesdays and Thursdays, 3:30 PM - 4:30 PM",
+        "max_participants": 18,
+        "participants": ["maya@mergington.edu"]
+    },
+    "Debate Team": {
+        "description": "Competitive debate and public speaking",
+        "schedule": "Mondays and Thursdays, 3:30 PM - 4:45 PM",
+        "max_participants": 14,
+        "participants": ["james@mergington.edu", "isabella@mergington.edu"]
+    },
+    "Science Club": {
+        "description": "Experiments, research, and STEM projects",
+        "schedule": "Fridays, 3:30 PM - 5:00 PM",
+        "max_participants": 20,
+        "participants": ["zoe@mergington.edu"]
     }
 }
 
@@ -52,16 +88,31 @@ def get_activities():
     return activities
 
 
+
 @app.post("/activities/{activity_name}/signup")
 def signup_for_activity(activity_name: str, email: str):
     """Sign up a student for an activity"""
-    # Validate activity exists
     if activity_name not in activities:
         raise HTTPException(status_code=404, detail="Activity not found")
-
-    # Get the specific activity
     activity = activities[activity_name]
-
-    # Add student
-    activity["participants"].append(email)
+    if email not in activity["participants"]:
+        activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+# New endpoint to unregister a participant from an activity
+from pydantic import BaseModel
+from fastapi import Body
+
+class UnregisterRequest(BaseModel):
+    activity_name: str
+    email: str
+
+@app.post("/activities/{activity_name}/unregister")
+def unregister_from_activity(activity_name: str, req: UnregisterRequest = Body(...)):
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    activity = activities[activity_name]
+    if req.email in activity["participants"]:
+        activity["participants"].remove(req.email)
+        return {"message": f"Unregistered {req.email} from {activity_name}"}
+    raise HTTPException(status_code=404, detail="Participant not found in this activity")

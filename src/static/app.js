@@ -20,11 +20,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Add participants section (no bullets, with delete icon)
+        let participantsHTML = '';
+        if (details.participants && details.participants.length) {
+          participantsHTML = `<div class="participants"><strong>Participants:</strong><ul class="participants-list" style="list-style-type:none;padding-left:0;">${details.participants.map(p => `
+            <li style="display:flex;align-items:center;margin-bottom:2px;">
+              <span>${p}</span>
+              <button class="delete-btn" data-activity="${name}" data-email="${p}" title="Remove" style="background:none;border:none;color:#c00;margin-left:8px;cursor:pointer;font-size:1.1em;">&#128465;</button>
+            </li>`).join("")}</ul></div>`;
+        } else {
+          participantsHTML = `<p class="no-participants"><strong>Participants:</strong> No participants yet</p>`;
+        }
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHTML}
         `;
 
         activitiesList.appendChild(activityCard);
@@ -34,6 +47,31 @@ document.addEventListener("DOMContentLoaded", () => {
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+      });
+      // Handle participant delete (unregister)
+      document.addEventListener("click", async (event) => {
+        if (event.target.classList.contains("delete-btn")) {
+          const activity = event.target.getAttribute("data-activity");
+          const email = event.target.getAttribute("data-email");
+          if (activity && email && confirm(`Remove participant: ${email} from ${activity}?`)) {
+            try {
+              const response = await fetch(`/activities/${encodeURIComponent(activity)}/unregister`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ activity_name: activity, email }),
+              });
+              const result = await response.json();
+              if (response.ok) {
+                // Refresh activities list
+                fetchActivities();
+              } else {
+                alert(result.detail || "Failed to remove participant.");
+              }
+            } catch (error) {
+              alert("Failed to remove participant. Please try again.");
+            }
+          }
+        }
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
